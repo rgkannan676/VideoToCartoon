@@ -4,3 +4,4 @@
 #     https://www.atlassian.com/git/tutorials/saving-changes/gitignore
 
 !model.py
+*.pth
