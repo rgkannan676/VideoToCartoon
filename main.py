@@ -46,6 +46,12 @@ EDGE_THRESHOLD_ADJUST = 0
 #If False : Follow WHITE_BACKGROUND_BLACK_EDGE variable.
 ADD_MIX_COLOR_EFFECT = False
 
+#Add random frames of original images effect.
+ADD_ORIGINAL_IMAGE_FRAMES = True
+#Number of original frames to add randomly.
+ORIGINAL_FRAMES_TO_ADD = 30
+#Interval between frames before adding next original frames.
+ORIGINAL_FRAMES_TO_ADD_INTERVAL = 100
 ###############################################
 
 #Print config details.
@@ -193,16 +199,34 @@ if __name__ == '__main__':
         complete_percentage = 0
 
         # Read until video is completed
+        insert_original =False
+        original_added_frame=0
+        prediction_added_interval = 0
         while (cap.isOpened()):
             for complete_percentage in tqdm(range(num_frames),desc="Processing video frames : "):
                 # Capture frame-by-frame
                 ret, frame = cap.read()
+
+                if ADD_ORIGINAL_IMAGE_FRAMES and (prediction_added_interval > ORIGINAL_FRAMES_TO_ADD_INTERVAL):
+                    if random.random() > 0.5:
+                        insert_original=True
+
                 if ret == True:
                     #For better perfomance and avoid memory issues, image is resized to half the size.
-                    preprocessed_image = torch.unsqueeze(preprocess_image(frame), 0).to(device)
-                    preds = model(preprocessed_image)
-                    result_image = postprocess_image(preds,width,height)
-                    output_file.write(result_image)
+                    if not insert_original:
+                        preprocessed_image = torch.unsqueeze(preprocess_image(frame), 0).to(device)
+                        preds = model(preprocessed_image)
+                        result_image = postprocess_image(preds,width,height)
+                        output_file.write(result_image)
+                        prediction_added_interval = prediction_added_interval + 1
+                    else:
+                        output_file.write(frame)
+                        original_added_frame = original_added_frame + 1
+                        if original_added_frame == ORIGINAL_FRAMES_TO_ADD:
+                            insert_original = False
+                            original_added_frame = 0
+                            prediction_added_interval = 0
+
                     complete_percentage = complete_percentage + 1
                 else:
                     break
