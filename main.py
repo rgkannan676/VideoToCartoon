@@ -6,6 +6,10 @@ from tqdm import tqdm
 import numpy as np
 import random
 
+
+# Import everything needed to
+from moviepy.editor import *
+
 ######## No Change Needed Configs ###########
 #Input Video Folder
 VIDEO_INPUT_FOLDER = "video_input"
@@ -44,13 +48,23 @@ ADD_MIX_COLOR_EFFECT = False
 
 ###############################################
 
+#Print config details.
 def print_start():
-    print("Starting Vedio To Cartoon Converter tool. Please check https://github.com/rgkannan676/VideoToCartoon for more details.")
-    print("Some Configuration info are below. If required can change in main.py.")
-    print("Set White background and black edge : ", WHITE_BACKGROUND_BLACK_EDGE)
-    print("Edge threshold value for sharper edges : ", EDGE_THRESHOLD_ADJUST)
-    print("Add mix frame effect torandomly change image colours : ", ADD_MIX_COLOR_EFFECT)
-    print("Maximum shape of input image to model set to : ", MODEL_INPUT_IMAGE_MAX_SIZE)
+    print("Starting Video To Cartoon Converter tool. Check https://github.com/rgkannan676/VideoToCartoon for more details.")
+    print("See Configuration info are below. If required can change in main.py.")
+    print("#Set White background and black edge : ", WHITE_BACKGROUND_BLACK_EDGE)
+    print("#Edge threshold value for sharper edges : ", EDGE_THRESHOLD_ADJUST)
+    print("#Add mix frame effect torandomly change image colours : ", ADD_MIX_COLOR_EFFECT)
+    print("#Maximum shape of input image to model set to : ", MODEL_INPUT_IMAGE_MAX_SIZE)
+
+
+#Using MoviePy librarty (https://zulko.github.io/moviepy/getting_started/getting_started.html#getting-started-with-moviepy) to set audio to edited video.
+def add_audio_to_video(original_video_path, edited_video_path):
+    original_video = VideoFileClip(original_video_path)
+    original_audio = original_video.audio
+    edited_video = VideoFileClip(edited_video_path)
+    edited_video.set_audio(original_audio)
+    edited_video.write_videofile(edited_video_path, verbose=False, progress_bar=False)
 
 
 
@@ -145,11 +159,12 @@ if __name__ == '__main__':
     else:
         device = 'cuda'
 
-    print("Running on device : ", device)
+    print("#Running on device : ", device)
     model = get_dexined_model(device)
 
     video_files_list = [x for x in os.listdir(VIDEO_INPUT_FOLDER) if x.endswith(".mkv") or x.endswith(".avi") or x.endswith(".mp4") or x.endswith(".webm")]
-    print("Number of videos found in folder ",VIDEO_INPUT_FOLDER, " : ", len(video_files_list))
+    print("#Number of videos found in folder ",VIDEO_INPUT_FOLDER, " : ", len(video_files_list))
+    print("-------------------------------------------------------------------------------------")
     for vid_num, video in enumerate(video_files_list):
         print("Processing video number : " , str(vid_num + 1), " with name : ", video)
         video_path = os.path.join(VIDEO_INPUT_FOLDER,video)
@@ -190,13 +205,18 @@ if __name__ == '__main__':
                     complete_percentage = complete_percentage + 1
                 else:
                     break
-            print("Completed processing ", video, " Check folder ", VIDEO_OUTPUT_FOLDER, " for output video.")
             break
 
 
         # When everything done, release the video capture object
         cap.release()
         output_file.release()
+
+        add_audio_to_video(video_path, output_path)
+
+        print("Completed processing ", video, " Check folder ", VIDEO_OUTPUT_FOLDER, " for output video.")
+
+
 
 
 
