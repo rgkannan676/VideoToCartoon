@@ -42,7 +42,7 @@ WHITE_BACKGROUND_BLACK_EDGE = True
 EDGE_THRESHOLD_ADJUST = 0
 
 # This is jus to add some random effects mixing the background and edge colours
-# If True : Add effect randomly.
+#If True : Add effect randomly.
 #If False : Follow WHITE_BACKGROUND_BLACK_EDGE variable.
 ADD_MIX_COLOR_EFFECT = False
 
@@ -76,8 +76,7 @@ def get_dexined_model(device):
     return model
 
 #Taken from https://github.com/xavysp/DexiNed/blob/master/utils/image.py
-def image_normalization(img, img_min=0, img_max=255,
-                        epsilon=1e-12):
+def image_normalization(img, img_min=0, img_max=255,epsilon=1e-12):
     """This is a typical image normalization function
     where the minimum and maximum of the image is needed
     source: https://en.wikipedia.org/wiki/Normalization_(image_processing)
@@ -141,7 +140,6 @@ def postprocess_image(preds,width,height):
     if ADD_MIX_COLOR_EFFECT:
         if random.random() > 0.5:
             tmp_img = cv2.bitwise_not(tmp_img)
-
 
     tmp_img = cv2.merge((tmp_img, tmp_img, tmp_img))
     tmp_img = cv2.resize(tmp_img, (width, height))
@@ -210,6 +208,7 @@ if __name__ == '__main__':
         cap.release()
         output_file.release()
 
+        #Set audio to edited video.
         add_audio_to_video(video_path, output_path)
 
         print("Completed processing ", video, " Check folder ", VIDEO_OUTPUT_FOLDER, " for output video.")
