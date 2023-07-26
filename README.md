@@ -22,6 +22,9 @@ Steps to install and use in Ananconda
 - WHITE_BACKGROUND_BLACK_EDGE: This config controls background and edge colour. If set to True will make the background white and the edge black. If False, will set opposite.
 - EDGE_THRESHOLD_ADJUST: If the value is higher, pixels with less confidence will be set as background pixels giving more sharp video.
 - ADD_MIX_COLOR_EFFECT: This adds some random effects mixing the background and edge colours between white and black.  If set to True will Add effect randomly. If False, follow the WHITE_BACKGROUND_BLACK_EDGE setting.
+- ADD_ORIGINAL_IMAGE_FRAMES: Add random frames of the original images effect.
+- ORIGINAL_FRAMES_TO_ADD: Number of original frames to add randomly when ADD_ORIGINAL_IMAGE_FRAMES is True.
+- ORIGINAL_FRAMES_TO_ADD_INTERVAL: Interval between frames before adding the next original set of frames when ADD_ORIGINAL_IMAGE_FRAMES is True.
 
 ## Result Sample
 ![Original](samples/original.PNG?raw=true "Original")
