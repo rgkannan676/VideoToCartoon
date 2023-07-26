@@ -39,7 +39,7 @@ MODEL_INPUT_IMAGE_MAX_SIZE = 720
 WHITE_BACKGROUND_BLACK_EDGE = True
 
 # If the value is higher, pixels with less confidence will be set as background pixel giving more sharp video.
-EDGE_THRESHOLD_ADJUST = 0
+EDGE_THRESHOLD_ADJUST = 200
 
 # This is jus to add some random effects mixing the background and edge colours
 #If True : Add effect randomly.
@@ -59,12 +59,14 @@ def print_start():
 
 
 #Using MoviePy librarty (https://zulko.github.io/moviepy/getting_started/getting_started.html#getting-started-with-moviepy) to set audio to edited video.
-def add_audio_to_video(original_video_path, edited_video_path):
+def add_audio_to_video(original_video_path, edited_video_path,original_save_path):
     original_video = VideoFileClip(original_video_path)
     original_audio = original_video.audio
     edited_video = VideoFileClip(edited_video_path)
     edited_video.set_audio(original_audio)
-    edited_video.write_videofile(edited_video_path, logger=None)
+    edited_video.write_videofile(original_save_path, logger=None)
+    original_video.close()
+    edited_video.close()
 
 #Initialize dexined model with checkpoint weights.
 def get_dexined_model(device):
@@ -171,10 +173,12 @@ if __name__ == '__main__':
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
         frames_per_second = cap.get(cv2.CAP_PROP_FPS)
         num_frames = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
-        
-        output_path = os.path.join(VIDEO_OUTPUT_FOLDER,video)
+
+        #To create a temperory file for processing.
+        tmp_video_name = "_-_tmp_-_" + video
+        temp_output_path = os.path.join(VIDEO_OUTPUT_FOLDER,tmp_video_name)
         output_file = cv2.VideoWriter(
-            filename=output_path,
+            filename=temp_output_path,
             fourcc=cv2.VideoWriter_fourcc(*"mp4v"), #Can depend on environment this runs. If fails check what is compactible in your environment
             fps=float(frames_per_second),
             frameSize=(width, height),
@@ -208,8 +212,12 @@ if __name__ == '__main__':
         cap.release()
         output_file.release()
 
-        #Set audio to edited video.
-        add_audio_to_video(video_path, output_path)
+        original_save_path = os.path.join(VIDEO_OUTPUT_FOLDER,video)
+        # Set audio to edited video.
+        print("Updating audio in edited video.")
+        add_audio_to_video(video_path, temp_output_path,original_save_path)
+        # Remove temperory file.
+        os.remove(temp_output_path)
 
         print("Completed processing ", video, " Check folder ", VIDEO_OUTPUT_FOLDER, " for output video.")
 
