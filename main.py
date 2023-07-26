@@ -39,7 +39,7 @@ MODEL_INPUT_IMAGE_MAX_SIZE = 720
 WHITE_BACKGROUND_BLACK_EDGE = True
 
 # If the value is higher, pixels with less confidence will be set as background pixel giving more sharp video.
-EDGE_THRESHOLD_ADJUST = 200
+EDGE_THRESHOLD_ADJUST = 0
 
 # This is jus to add some random effects mixing the background and edge colours
 #If True : Add effect randomly.
