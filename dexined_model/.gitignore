@@ -5,3 +5,4 @@
 
 !model.py
 *.pth
+__pycache__

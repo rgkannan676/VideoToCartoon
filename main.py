@@ -4,13 +4,47 @@ import cv2
 from dexined_model.model import DexiNed
 import tqdm
 import numpy as np
+import random
 
+######## No Change Needed Configs ###########
+#Input Video Folder
 VIDEO_INPUT_FOLDER = "video_input"
+
+#Output Video Folder
 VIDEO_OUTPUT_FOLDER = "video_output"
+
+#Dexined Model model
 DEXINED_MODEL_FOLDER = "dexined_model"
+
+#Dexined checkpoint name provided by https://github.com/xavysp/DexiNed/tree/master
 DEXINED_CHECK_POINT = "10_model.pth"
+
+#Mean pixel values provided in the repo https://github.com/xavysp/DexiNed/tree/master
 PRE_PROCESS_MEAN_PIXEL_VALUE = [103.939,116.779,123.68]
 
+###############################################
+
+######## Changable Configs ####################
+#For large images, takes more time and memmory.
+MODEL_INPUT_IMAGE_SCALE = 0.5
+
+# This config controls background and edge colour.
+#If True :Background white, edge balck
+#If False :Background black, edge white
+WHITE_BACKGROUND_BLACK_EDGE = True
+
+# If the value is higher, pixels with less confidence will be set as background pixel giving more sharp video.
+EDGE_THRESHOLD_ADJUST = 0
+
+# This is jus to add some random effects mixing the background and edge colours
+# If True : Add effect randomly.
+#If False : Follow WHITE_BACKGROUND_BLACK_EDGE variable.
+ADD_MIX_COLOR_EFFECT = False
+
+###############################################
+
+
+#Initialize dexined model with checkpoint weights.
 def get_dexined_model(device):
     checkpoint_path = os.path.join(DEXINED_MODEL_FOLDER,DEXINED_CHECK_POINT)
     model = DexiNed().to(device)
@@ -19,7 +53,30 @@ def get_dexined_model(device):
 
     return model
 
+#Taken from https://github.com/xavysp/DexiNed/blob/master/utils/image.py
+def image_normalization(img, img_min=0, img_max=255,
+                        epsilon=1e-12):
+    """This is a typical image normalization function
+    where the minimum and maximum of the image is needed
+    source: https://en.wikipedia.org/wiki/Normalization_(image_processing)
 
+    :param img: an image could be gray scale or color
+    :param img_min:  for default is 0
+    :param img_max: for default is 255
+
+    :return: a normalized image, if max is 255 the dtype is uint8
+    """
+
+    img = np.float32(img)
+    # whenever an inconsistent image
+    img = (img - np.min(img)) * (img_max - img_min) / \
+        ((np.max(img) - np.min(img)) + epsilon) + img_min
+    return img
+
+
+#Preprocess image
+# 1) resize image to multiple of 16
+# 2) subtract mean and transpose according to preprocess steps in https://github.com/xavysp/DexiNed/blob/master/datasets.py
 def preprocess_image(image):
     if image.shape[0] % 16 != 0 or image.shape[1] % 16 != 0:
         img_width = ((image.shape[1] // 16) + 1) * 16
@@ -32,11 +89,28 @@ def preprocess_image(image):
     image = torch.from_numpy(image.copy()).float()
     return image
 
-def postprocess_image(preds):
+#Post process prediction results
+#Follow steps in https://github.com/xavysp/DexiNed/blob/master/utils/image.py
+#Here, considering only fused layer(6)
+def postprocess_image(preds,width,height):
     fuse_pred = preds[6]
     fuse_sigmoid = torch.sigmoid(fuse_pred).cpu().detach().numpy()
+    tmp_img = cv2.bitwise_not(np.uint8(image_normalization(fuse_sigmoid))).astype(np.uint8)[0,0,:,:]
 
-    pass
+    if EDGE_THRESHOLD_ADJUST > 0:
+        tmp_img[tmp_img > EDGE_THRESHOLD_ADJUST] = 255
+
+    if (not WHITE_BACKGROUND_BLACK_EDGE) and (not ADD_MIX_COLOR_EFFECT):
+        tmp_img = cv2.bitwise_not(tmp_img)
+
+    if ADD_MIX_COLOR_EFFECT:
+        if random.random() > 0.5:
+            tmp_img = cv2.bitwise_not(tmp_img)
+
+
+    tmp_img = cv2.merge((tmp_img, tmp_img, tmp_img))
+    tmp_img = cv2.resize(tmp_img, (width, height))
+    return tmp_img
 
 
 if __name__ == '__main__':
@@ -64,10 +138,7 @@ if __name__ == '__main__':
         output_path = os.path.join(VIDEO_OUTPUT_FOLDER,video)
         output_file = cv2.VideoWriter(
             filename=output_path,
-            # some installation of opencv may not support x264 (due to its license),
-            # you can try other format (e.g. MPEG)
-            # cv2.VideoWriter_fourcc(*codec),
-            fourcc=cv2.VideoWriter_fourcc(*"mp4v"),
+            fourcc=cv2.VideoWriter_fourcc(*"mp4v"), #Can depend on environment this runs. If fails check what is compactible in your environment
             fps=float(frames_per_second),
             frameSize=(width, height),
             isColor=True,
@@ -85,11 +156,12 @@ if __name__ == '__main__':
                 # Capture frame-by-frame
                 ret, frame = cap.read()
                 if ret == True:
+                    #For better perfomance and avoid memory issues, image is resized to half the size.
+                    frame = cv2.resize(frame, (int(width * MODEL_INPUT_IMAGE_SCALE ), int(height * MODEL_INPUT_IMAGE_SCALE)))
                     preprocessed_image = torch.unsqueeze(preprocess_image(frame), 0).to(device)
                     preds = model(preprocessed_image)
-                    print("Len pf preds : ", len(preds))
-
-                    output_file.write(frame)
+                    result_image = postprocess_image(preds,width,height)
+                    output_file.write(result_image)
                     complete_percentage = complete_percentage + 1
                 else:
                     break
