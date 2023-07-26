@@ -3,7 +3,7 @@
 A tool that converts video into black-and-white cartoons. This repo is using the edge detection model provided by **[DexiNed](https://github.com/xavysp/DexiNed)**. 
 
 
-# Installation and Processing Steps
+## Installation and Processing Steps
 
 Steps to install and use in Ananconda
 - conda create --name videoToCartoon python=3.8
@@ -16,3 +16,9 @@ Steps to install and use in Ananconda
 - Copy the videos to covert in the folder 'video_input'
 - Run 'python main.py' . This will start the processing.
 - See the output videos in folder 'video_output'
+
+## Adjustable Configs
+- MODEL_INPUT_IMAGE_MAX_SIZE: Set maximum shape to image input to the model. This is needed to avoid performance issues and CUDA memory.
+- WHITE_BACKGROUND_BLACK_EDGE: This config controls background and edge colour. If set to True will make the background white and the edge black. If False, will set opposite.
+- EDGE_THRESHOLD_ADJUST: If the value is higher, pixels with less confidence will be set as background pixels giving more sharp video.
+- ADD_MIX_COLOR_EFFECT: This adds some random effects mixing the background and edge colours between white and black.  If set to True will Add effect randomly. If False, follow the WHITE_BACKGROUND_BLACK_EDGE setting.
