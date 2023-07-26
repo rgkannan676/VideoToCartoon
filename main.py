@@ -64,9 +64,7 @@ def add_audio_to_video(original_video_path, edited_video_path):
     original_audio = original_video.audio
     edited_video = VideoFileClip(edited_video_path)
     edited_video.set_audio(original_audio)
-    edited_video.write_videofile(edited_video_path, verbose=False, progress_bar=False)
-
-
+    edited_video.write_videofile(edited_video_path, logger=None)
 
 #Initialize dexined model with checkpoint weights.
 def get_dexined_model(device):
