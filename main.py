@@ -2,7 +2,7 @@ import os
 import torch
 import cv2
 from dexined_model.model import DexiNed
-import tqdm
+from tqdm import tqdm
 import numpy as np
 import random
 
@@ -25,8 +25,9 @@ PRE_PROCESS_MEAN_PIXEL_VALUE = [103.939,116.779,123.68]
 ###############################################
 
 ######## Changable Configs ####################
-#For large images, takes more time and memmory.
-MODEL_INPUT_IMAGE_SCALE = 0.5
+
+#Set maximum shape to image input to model, this is needed to avoid performance issues and CUDA memory
+MODEL_INPUT_IMAGE_MAX_SIZE = 720
 
 # This config controls background and edge colour.
 #If True :Background white, edge balck
@@ -42,6 +43,15 @@ EDGE_THRESHOLD_ADJUST = 0
 ADD_MIX_COLOR_EFFECT = False
 
 ###############################################
+
+def print_start():
+    print("Starting Vedio To Cartoon Converter tool. Please check https://github.com/rgkannan676/VideoToCartoon for more details.")
+    print("Some Configuration info are below. If required can change in main.py.")
+    print("Set White background and black edge : ", WHITE_BACKGROUND_BLACK_EDGE)
+    print("Edge threshold value for sharper edges : ", EDGE_THRESHOLD_ADJUST)
+    print("Add mix frame effect torandomly change image colours : ", ADD_MIX_COLOR_EFFECT)
+    print("Maximum shape of input image to model set to : ", MODEL_INPUT_IMAGE_MAX_SIZE)
+
 
 
 #Initialize dexined model with checkpoint weights.
@@ -78,6 +88,19 @@ def image_normalization(img, img_min=0, img_max=255,
 # 1) resize image to multiple of 16
 # 2) subtract mean and transpose according to preprocess steps in https://github.com/xavysp/DexiNed/blob/master/datasets.py
 def preprocess_image(image):
+
+    #Control input size.
+    if image.shape[0] > MODEL_INPUT_IMAGE_MAX_SIZE or image.shape[1] > MODEL_INPUT_IMAGE_MAX_SIZE:
+        new_width = None
+        new_height = None
+        if image.shape[0] >=  image.shape[1]:
+            new_height =  MODEL_INPUT_IMAGE_MAX_SIZE
+            new_width = int(MODEL_INPUT_IMAGE_MAX_SIZE * (image.shape[1]/image.shape[0]))
+        else:
+            new_height = int(MODEL_INPUT_IMAGE_MAX_SIZE * (image.shape[0] / image.shape[1]))
+            new_width = MODEL_INPUT_IMAGE_MAX_SIZE
+        image = cv2.resize(image, (new_width, new_height))
+
     if image.shape[0] % 16 != 0 or image.shape[1] % 16 != 0:
         img_width = ((image.shape[1] // 16) + 1) * 16
         img_height = ((image.shape[0] // 16) + 1) * 16
@@ -115,6 +138,8 @@ def postprocess_image(preds,width,height):
 
 if __name__ == '__main__':
 
+    print_start()
+
     if torch.cuda.device_count() == 0:
         device = 'cpu'
     else:
@@ -124,8 +149,9 @@ if __name__ == '__main__':
     model = get_dexined_model(device)
 
     video_files_list = [x for x in os.listdir(VIDEO_INPUT_FOLDER) if x.endswith(".mkv") or x.endswith(".avi") or x.endswith(".mp4") or x.endswith(".webm")]
-    for video in video_files_list:
-        print("Processing video : ", video)
+    print("Number of videos found in folder ",VIDEO_INPUT_FOLDER, " : ", len(video_files_list))
+    for vid_num, video in enumerate(video_files_list):
+        print("Processing video number : " , str(vid_num + 1), " with name : ", video)
         video_path = os.path.join(VIDEO_INPUT_FOLDER,video)
 
         cap = cv2.VideoCapture(video_path)
@@ -146,18 +172,17 @@ if __name__ == '__main__':
 
 
         if (cap.isOpened() == False):
-            print("Error opening video stream or file")
+            print("ERROR : Error opening video stream or file")
 
         complete_percentage = 0
 
         # Read until video is completed
         while (cap.isOpened()):
-            for complete_percentage in tqdm.tqdm(range(num_frames)):
+            for complete_percentage in tqdm(range(num_frames),desc="Processing video frames : "):
                 # Capture frame-by-frame
                 ret, frame = cap.read()
                 if ret == True:
                     #For better perfomance and avoid memory issues, image is resized to half the size.
-                    frame = cv2.resize(frame, (int(width * MODEL_INPUT_IMAGE_SCALE ), int(height * MODEL_INPUT_IMAGE_SCALE)))
                     preprocessed_image = torch.unsqueeze(preprocess_image(frame), 0).to(device)
                     preds = model(preprocessed_image)
                     result_image = postprocess_image(preds,width,height)
