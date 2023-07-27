@@ -18,6 +18,7 @@ Steps to install and use in Ananconda
 - See the output videos in folder 'video_output'
 
 ## Adjustable Configs
+Can change the below configs in main.py.
 - MODEL_INPUT_IMAGE_MAX_SIZE: Set maximum shape to image input to the model. This is needed to avoid performance issues and CUDA memory.
 - WHITE_BACKGROUND_BLACK_EDGE: This config controls background and edge colour. If set to True will make the background white and the edge black. If False, will set opposite.
 - EDGE_THRESHOLD_ADJUST: If the value is higher, pixels with less confidence will be set as background pixels giving more sharp video.
